@@ -15,40 +15,16 @@ const customFetch = async (url: string, options: RequestInit) => {
             ...headers,
             Authorization: headers?.Authorization || `Bearer ${accessToken}`,
             "Content-Type": "application/json",
-            "Apollo-Require_Preflight": "true",
-        }
-    })
-}
-
-const getGraphQLErrors = (body: Record<"errors", GraphQLFormattedError[] | undefined>):
-    Error | null => {
-    if (!body) {
-        return {
-            message: "Unkown Error",
-            statusCode: "INTERNAL_SERVER_ERROR"
-        }
-    }
-    if ("errors" in body) {
-        const errors = body?.errors;
-
-        const messages = errors?.map((error) => error?.message)?.join("");
-        const code = errors?.[0]?.extensions?.code;
-
-        return {
-            message: messages || JSON.stringify(errors),
-            statusCode: code || 500
-        }
-    }
-
-    return null;
-}
+            "Apollo-Require-Preflight": "true",
+        },
+    });
+};
 
 export const fetchWrapper = async (url: string, options: RequestInit) => {
     const response = await customFetch(url, options);
 
     const responseClone = response.clone();
     const body = await responseClone.json();
-
     const error = getGraphQLErrors(body);
 
     if (error) {
@@ -56,4 +32,28 @@ export const fetchWrapper = async (url: string, options: RequestInit) => {
     }
 
     return response;
-}
+};
+
+const getGraphQLErrors = (
+    body: Record<"errors", GraphQLFormattedError[] | undefined>,
+): Error | null => {
+    if (!body) {
+        return {
+            message: "Unknown error",
+            statusCode: "INTERNAL_SERVER_ERROR",
+        };
+    }
+
+    if ("errors" in body) {
+        const errors = body?.errors;
+        const messages = errors?.map((error) => error?.message)?.join("");
+        const code = errors?.[0]?.extensions?.code;
+
+        return {
+            message: messages || JSON.stringify(errors),
+            statusCode:  String(code) || '500',
+        };
+    }
+
+    return null;
+};
